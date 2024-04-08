@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 
-rsprotoc() { protoc "$@" --rust_out ../src/ --proto_path=./ --proto_path=/usr/include --proto_path=/usr/local/include ;}
+mkdir -p ../src/
+
+rsprotoc() {
+    local filepath="$1"
+    local dir=$(dirname "$filepath")
+    local reldir="${dir#./}"
+    mkdir -p "../src/$reldir"
+    protoc "$filepath" --rust_out=../src/$reldir --proto_path=./ --proto_path=$dir --proto_path=/usr/include --proto_path=/usr/local/include
+}
 
 cd protos
 
 echo -n "" > ../src/lib.rs
 
-for filename in *.proto; do
-    rsprotoc $filename
+find . -name '*.proto' | while IFS= read -r filename; do
+    rsprotoc "$filename"
 
-    mod="${filename%.*}";
-    mod="${mod//\./_}";
-    echo "pub mod ${mod};" >> ../src/lib.rs
+    mod=$(basename "$filename" .proto)
+    mod="${mod//./_}"
+    path_without_ext="${filename%.*}"
+    mod_path="${path_without_ext#./}"
+    mod_path="${mod_path//\//::}"
+    mod_path="${mod_path//./_}"
+    echo "pub mod ${mod_path};" >> ../src/lib.rs
 done
