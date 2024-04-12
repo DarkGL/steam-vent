@@ -2,3 +2,4 @@
 Cargo.lock
 /data
 .env
+.vscode/settings.json
